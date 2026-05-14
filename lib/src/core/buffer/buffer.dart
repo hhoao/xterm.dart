@@ -110,15 +110,27 @@ class Buffer {
     codePoint = charset.translate(codePoint);
 
     final cellWidth = unicodeV11.wcwidth(codePoint);
-    if (_cursorX >= terminal.viewWidth) {
+
+    // If a row is still narrower than the logical viewport (resize/reflow
+    // ordering), grow it before writing so cells exist for the painter.
+    var line = currentLine;
+    if (line.length < viewWidth) {
+      line.resize(viewWidth);
+    }
+
+    // Wrap at terminal margin or when the cursor is past this row's storage.
+    if (_cursorX >= terminal.viewWidth || _cursorX >= line.length) {
       index();
       setCursorX(0);
       if (terminal.autoWrapMode) {
         currentLine.isWrapped = true;
       }
+      line = currentLine;
+      if (line.length < viewWidth) {
+        line.resize(viewWidth);
+      }
     }
 
-    final line = currentLine;
     line.setCell(_cursorX, codePoint, cellWidth, terminal.cursor);
 
     if (_cursorX < viewWidth) {
@@ -330,8 +342,11 @@ class Buffer {
 
   /// Restore cursor position, charmap and text attributes.
   void restoreCursor() {
-    _cursorX = _savedCursorX;
-    _cursorY = _savedCursorY;
+    // Saved coordinates may be outside the viewport after a resize (e.g. user
+    // maximized then minimized). Clamp like [setCursor] to avoid writing past
+    // the end of a [BufferLine].
+    _cursorX = _savedCursorX.clamp(0, viewWidth - 1);
+    _cursorY = _savedCursorY.clamp(0, viewHeight - 1);
     terminal.cursor.foreground = _savedCursorStyle.foreground;
     terminal.cursor.background = _savedCursorStyle.background;
     terminal.cursor.attrs = _savedCursorStyle.attrs;

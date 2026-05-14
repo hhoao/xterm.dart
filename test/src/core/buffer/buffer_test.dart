@@ -84,6 +84,30 @@ void main() {
     });
   });
 
+  group('restoreCursor after resize', () {
+    test('clamps saved position so write does not throw', () {
+      final terminal = Terminal();
+      terminal.resize(120, 10);
+      terminal.setCursor(107, 0);
+      terminal.write('\x1b7'); // DECSC: save cursor at column 107
+      terminal.resize(64, 10);
+      terminal.write('\x1b8'); // DECRC: restore must clamp to last column
+      terminal.write('A');
+      expect(terminal.buffer.cursorX, 63);
+    });
+  });
+
+  group('writeChar line width safety', () {
+    test('grows row when narrower than viewWidth so output is not clipped', () {
+      final terminal = Terminal();
+      terminal.resize(80, 10);
+      terminal.setCursor(10, 0);
+      terminal.lines[terminal.buffer.absoluteCursorY].resize(64);
+      terminal.write('hello');
+      expect(terminal.lines[terminal.buffer.absoluteCursorY].length, 80);
+    });
+  });
+
   group('Buffer.resize()', () {
     test('should resize the buffer', () {
       final terminal = Terminal();
