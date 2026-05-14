@@ -158,24 +158,46 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
 
     if (hasInputConnection) {
       _connection!.show();
-    } else {
-      final config = TextInputConfiguration(
-        inputType: widget.inputType,
-        inputAction: widget.inputAction,
-        keyboardAppearance: widget.keyboardAppearance,
-        autocorrect: false,
-        enableSuggestions: false,
-        enableIMEPersonalizedLearning: false,
-      );
-
-      _connection = TextInput.attach(this, config);
-
-      _connection!.show();
-
-      // setEditableRect(Rect.zero, Rect.zero);
-
-      _connection!.setEditingState(_initEditingState);
+      return;
     }
+
+    final int? viewId = View.maybeOf(context)?.viewId;
+    if (viewId == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !widget.focusNode.hasFocus) {
+          return;
+        }
+        if (hasInputConnection) {
+          return;
+        }
+        final int? deferredViewId = View.maybeOf(context)?.viewId;
+        if (deferredViewId == null) {
+          return;
+        }
+        _attachTextInput(deferredViewId);
+      });
+      return;
+    }
+
+    _attachTextInput(viewId);
+  }
+
+  void _attachTextInput(int viewId) {
+    final config = TextInputConfiguration(
+      viewId: viewId,
+      inputType: widget.inputType,
+      inputAction: widget.inputAction,
+      keyboardAppearance: widget.keyboardAppearance,
+      autocorrect: false,
+      enableSuggestions: false,
+      enableIMEPersonalizedLearning: false,
+    );
+
+    _connection = TextInput.attach(this, config);
+
+    _connection!.show();
+
+    _connection!.setEditingState(_initEditingState);
   }
 
   void _closeInputConnectionIfNeeded() {
@@ -234,7 +256,7 @@ class CustomTextEditState extends State<CustomTextEdit> with TextInputClient {
     // Reset editing state if composing is done
     if (_currentEditingState.composing.isCollapsed &&
         _currentEditingState.text != _initEditingState.text) {
-      _connection!.setEditingState(_initEditingState);
+      _connection?.setEditingState(_initEditingState);
     }
   }
 

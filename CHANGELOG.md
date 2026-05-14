@@ -1,3 +1,6 @@
+## [4.0.1] - 2026-05-14
+* Pass `TextInputConfiguration.viewId` when attaching IME (`CustomTextEdit`), with a one-frame deferral when `View.maybeOf` is not ready yet. Fixes Windows text input (`Could not set client, view ID is null`) on Flutter 3.22+.
+
 ## [4.0.0] - 2024-02-27
 * Update for Flutter 3.19 [#190]. Thanks [@domesticmouse].
 * Fix designate charset logic [#186]. Thanks [@djnalluri].
