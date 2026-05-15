@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/painting.dart';
 
+import 'package:xterm/src/ui/char_metrics.dart';
 import 'package:xterm/src/ui/palette_builder.dart';
 import 'package:xterm/src/ui/paragraph_cache.dart';
 import 'package:xterm/xterm.dart';
@@ -54,25 +55,10 @@ class TerminalPainter {
   }
 
   Size _measureCharSize() {
-    const test = 'mmmmmmmmmm';
-
-    final textStyle = _textStyle.toTextStyle();
-    final builder = ParagraphBuilder(textStyle.getParagraphStyle());
-    builder.pushStyle(
-      textStyle.getTextStyle(textScaler: _textScaler),
+    return measureCellSizeFromTextStyle(
+      _textStyle.toTextStyle(),
+      _textScaler,
     );
-    builder.addText(test);
-
-    final paragraph = builder.build();
-    paragraph.layout(ParagraphConstraints(width: double.infinity));
-
-    final result = Size(
-      paragraph.maxIntrinsicWidth / test.length,
-      paragraph.height,
-    );
-
-    paragraph.dispose();
-    return result;
   }
 
   /// The size of each character in the terminal.
@@ -214,7 +200,14 @@ class TerminalPainter {
       );
     }
 
-    canvas.drawParagraph(paragraph, offset);
+    final doubleWidth = cellData.content >> CellContent.widthShift == 2;
+    final widthScale = doubleWidth ? 2 : 1;
+    final clipWidth = _cellSize.width * widthScale;
+    canvas
+      ..save()
+      ..clipRect(Rect.fromLTWH(offset.dx, offset.dy, clipWidth, _cellSize.height))
+      ..drawParagraph(paragraph, offset)
+      ..restore();
   }
 
   /// Paints the background of a cell represented by [cellData] to [canvas] at
