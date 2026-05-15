@@ -10,9 +10,20 @@ const _kWideCharSample = '\u4e2d\u4e2d\u4e2d\u4e2d\u4e2d';
 const _kAsciiCharSample = 'mmmmmmmmmm';
 
 Size calcCharSize(TerminalStyle style, TextScaler textScaler) {
-  return measureCellSizeFromTextStyle(
+  final regular = measureCellSizeFromTextStyle(
     style.toTextStyle(),
     textScaler,
+  );
+  if (!style.useBoldFontWeight) {
+    return regular;
+  }
+  final bold = measureCellSizeFromTextStyle(
+    style.toTextStyle(bold: true),
+    textScaler,
+  );
+  return Size(
+    math.max(regular.width, bold.width),
+    regular.height,
   );
 }
 

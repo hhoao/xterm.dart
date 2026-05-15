@@ -200,14 +200,21 @@ class TerminalPainter {
       );
     }
 
+    // Only clip double-width (e.g. CJK) glyphs. Single-width Powerline / Nerd
+    // Font PUA symbols are drawn edge-to-edge and must not be clipped.
     final doubleWidth = cellData.content >> CellContent.widthShift == 2;
-    final widthScale = doubleWidth ? 2 : 1;
-    final clipWidth = _cellSize.width * widthScale;
-    canvas
-      ..save()
-      ..clipRect(Rect.fromLTWH(offset.dx, offset.dy, clipWidth, _cellSize.height))
-      ..drawParagraph(paragraph, offset)
-      ..restore();
+    if (doubleWidth) {
+      final clipWidth = _cellSize.width * 2;
+      canvas
+        ..save()
+        ..clipRect(
+          Rect.fromLTWH(offset.dx, offset.dy, clipWidth, _cellSize.height),
+        )
+        ..drawParagraph(paragraph, offset)
+        ..restore();
+    } else {
+      canvas.drawParagraph(paragraph, offset);
+    }
   }
 
   /// Paints the background of a cell represented by [cellData] to [canvas] at

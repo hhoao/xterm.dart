@@ -7,7 +7,6 @@ const _kDefaultHeight = 1.2;
 const _kDefaultFontFamily = 'monospace';
 
 const _kDefaultFontFamilyFallback = [
-  'Menlo',
   'Monaco',
   'Consolas',
   'Liberation Mono',
@@ -29,6 +28,7 @@ class TerminalStyle {
     this.height = _kDefaultHeight,
     this.fontFamily = _kDefaultFontFamily,
     this.fontFamilyFallback = _kDefaultFontFamilyFallback,
+    this.useBoldFontWeight = true,
   });
 
   factory TerminalStyle.fromTextStyle(TextStyle textStyle) {
@@ -51,6 +51,11 @@ class TerminalStyle {
 
   final List<String> fontFamilyFallback;
 
+  /// When false, SGR bold does not switch to [FontWeight.bold] / the bold font
+  /// file — closer to VTE (GNOME Terminal) on Linux, which often keeps the
+  /// same stem weight and uses brighter palette colors for emphasis.
+  final bool useBoldFontWeight;
+
   TextStyle toTextStyle({
     Color? color,
     Color? backgroundColor,
@@ -65,7 +70,9 @@ class TerminalStyle {
       fontFamilyFallback: fontFamilyFallback,
       color: color,
       backgroundColor: backgroundColor,
-      fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+      fontWeight: bold && useBoldFontWeight
+          ? FontWeight.bold
+          : FontWeight.w400,
       fontStyle: italic ? FontStyle.italic : FontStyle.normal,
       decoration: underline ? TextDecoration.underline : TextDecoration.none,
     );
@@ -76,12 +83,14 @@ class TerminalStyle {
     double? height,
     String? fontFamily,
     List<String>? fontFamilyFallback,
+    bool? useBoldFontWeight,
   }) {
     return TerminalStyle(
       fontSize: fontSize ?? this.fontSize,
       height: height ?? this.height,
       fontFamily: fontFamily ?? this.fontFamily,
       fontFamilyFallback: fontFamilyFallback ?? this.fontFamilyFallback,
+      useBoldFontWeight: useBoldFontWeight ?? this.useBoldFontWeight,
     );
   }
 }
