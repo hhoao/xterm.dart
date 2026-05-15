@@ -55,9 +55,18 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
 
   RenderTerminal get renderTerminal => terminalView.renderTerminal;
 
-  DragStartDetails? _lastDragStartDetails;
+  Offset? _lastDragStartGlobal;
 
-  LongPressStartDetails? _lastLongPressStartDetails;
+  Offset? _lastLongPressStartGlobal;
+
+  /// Map pointer [globalPosition] into [RenderTerminal] coordinates so
+  /// selection aligns with painted cells inside a [Scrollable] viewport.
+  Offset _terminalLocalPosition(Offset globalPosition) {
+    if (!renderTerminal.attached) {
+      return globalPosition;
+    }
+    return renderTerminal.globalToLocal(globalPosition);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +104,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
       handled = renderTerminal.mouseEvent(
         button,
         TerminalMouseButtonState.down,
-        details.localPosition,
+        _terminalLocalPosition(details.globalPosition),
       );
     }
     // If the event was not handled by the terminal, use the supplied callback.
@@ -116,7 +125,7 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
       handled = renderTerminal.mouseEvent(
         button,
         TerminalMouseButtonState.up,
-        details.localPosition,
+        _terminalLocalPosition(details.globalPosition),
       );
     }
     // If the event was not handled by the terminal, use the supplied callback.
@@ -157,35 +166,36 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
   }
 
   void onDoubleTapDown(TapDownDetails details) {
-    renderTerminal.selectWord(details.localPosition);
+    renderTerminal.selectWord(_terminalLocalPosition(details.globalPosition));
   }
 
   void onLongPressStart(LongPressStartDetails details) {
-    _lastLongPressStartDetails = details;
-    renderTerminal.selectWord(details.localPosition);
+    _lastLongPressStartGlobal = details.globalPosition;
+    renderTerminal.selectWord(_terminalLocalPosition(details.globalPosition));
   }
 
   void onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
     renderTerminal.selectWord(
-      _lastLongPressStartDetails!.localPosition,
-      details.localPosition,
+      _terminalLocalPosition(_lastLongPressStartGlobal!),
+      _terminalLocalPosition(details.globalPosition),
     );
   }
 
   // void onLongPressUp() {}
 
   void onDragStart(DragStartDetails details) {
-    _lastDragStartDetails = details;
+    _lastDragStartGlobal = details.globalPosition;
+    final local = _terminalLocalPosition(details.globalPosition);
 
     details.kind == PointerDeviceKind.mouse
-        ? renderTerminal.selectCharacters(details.localPosition)
-        : renderTerminal.selectWord(details.localPosition);
+        ? renderTerminal.selectCharacters(local)
+        : renderTerminal.selectWord(local);
   }
 
   void onDragUpdate(DragUpdateDetails details) {
     renderTerminal.selectCharacters(
-      _lastDragStartDetails!.localPosition,
-      details.localPosition,
+      _terminalLocalPosition(_lastDragStartGlobal!),
+      _terminalLocalPosition(details.globalPosition),
     );
   }
 }

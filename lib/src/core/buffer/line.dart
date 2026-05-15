@@ -237,12 +237,17 @@ class BufferLine with IndexedItem {
     }
 
     if (length > _length) {
+      final oldLength = _length;
       final newBufferSize = _calcCapacity(length) * _cellSize;
 
       if (newBufferSize > _data.length) {
         final newBuffer = Uint32List(newBufferSize);
         newBuffer.setRange(0, _data.length, _data);
         _data = newBuffer;
+      }
+
+      for (var i = oldLength; i < length; i++) {
+        resetCell(i);
       }
     }
 

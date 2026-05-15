@@ -212,7 +212,13 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
     _updateScrollOffset();
 
-    if (_stickToBottom) {
+    if (_terminal.isUsingAltBuffer) {
+      // Alternate-screen TUIs address rows 0..viewHeight-1. Flutter scroll
+      // must stay pinned to the top or redrawn regions misalign with the PTY.
+      if (_scrollOffset != 0) {
+        _offset.correctBy(-_scrollOffset);
+      }
+    } else if (_stickToBottom) {
       _offset.correctBy(_maxScrollExtent - _scrollOffset);
     }
   }
@@ -237,16 +243,23 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     final row = cellOffset.y;
     final col = cellOffset.x;
     final x = col * _painter.cellSize.width;
-    final y = row * _painter.cellSize.height;
-    return Offset(x + _padding.left, y + _padding.top - _scrollOffset);
+    final y = row * _painter.cellSize.height + _lineOffset;
+    return Offset(x + _padding.left, y);
   }
 
   /// Get the [CellOffset] of the cell that [offset] is in.
+  ///
+  /// [offset] must be in this [RenderTerminal]'s local coordinates (same space
+  /// as [paint]). Use [globalToLocal] for pointer events from ancestors.
   CellOffset getCellOffset(Offset offset) {
-    final x = offset.dx - _padding.left;
-    final y = offset.dy - _padding.top + _scrollOffset;
-    final row = y ~/ _painter.cellSize.height;
-    final col = x ~/ _painter.cellSize.width;
+    final charWidth = _painter.cellSize.width;
+    final charHeight = _painter.cellSize.height;
+    if (charWidth <= 0 || charHeight <= 0) {
+      return const CellOffset(0, 0);
+    }
+    final col = ((offset.dx - _padding.left) / charWidth).floor();
+    // Lines are painted at row * charHeight + [_lineOffset].
+    final row = ((offset.dy - _lineOffset) / charHeight).floor();
     return CellOffset(
       col.clamp(0, _terminal.viewWidth - 1),
       row.clamp(0, _terminal.buffer.lines.length - 1),
